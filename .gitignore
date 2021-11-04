@@ -1,0 +1,7 @@
+example.go
+.DS_Store
+
+*.jpg
+
+/pkg
+/bin
