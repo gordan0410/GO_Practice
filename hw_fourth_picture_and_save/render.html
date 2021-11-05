@@ -1,0 +1,60 @@
+<html>
+<head>
+    <title>websocket take picture</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <button id="picture">拍照</button>
+    <button id="save">儲存</button>
+    <div>
+        <div id="data"></div>
+    </div>
+    <script type="text/javascript">
+        if (window.WebSocket === undefined) {
+            alert("Your browser does not support WebSockets.");
+        } else {
+            console.log("ok")
+        }
+
+        function ws_takepic() {
+            var socket = new WebSocket("ws://localhost:3000/ws_takeandshow_pic");
+            socket.onopen = function () {
+                console.log("Socket is open.");
+            };
+            socket.onmessage = function (e) {
+                    console.log("Received data.", e.data);
+                    data = e.data.replace('"', '');
+                    // document.getElementById("data").innerHTML = data
+                    document.getElementById("data").innerHTML= '<img src="data:image/jpg;base64,'+ data +'" width="100" height="100">'
+                    // Get the data in JSON format.
+                    // you have to replace 'REPLACETHIS' by the name of your base64 image data
+                }
+            socket.onclose = function () {
+                console.log("Socket closed.");
+            }
+            return socket;
+        }
+
+        function ws_savepic() {
+            var socket = new WebSocket("ws://localhost:3000/ws_save_pic");
+            socket.onopen = function () {
+                console.log("Socket is open.");
+                socket.send(JSON.stringify({Msg: data}));
+                console.log(JSON.stringify({Msg: data}))
+            };
+            socket.onclose = function () {
+                console.log("Socket closed.");
+            }
+            return socket;
+        }
+
+
+        $("#picture").on('click', function(){
+            ws_takepic()
+        })
+        $("#save").on('click', function(){
+            ws_savepic()
+        })
+    </script>
+</body>
+</html>
