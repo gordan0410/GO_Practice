@@ -6,3 +6,4 @@ example.go
 /pkg
 /bin
 /playground
+/docker
