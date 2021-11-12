@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+        <style type="text/css">
+            .body{text-align: center;}
+            #open{width: 120px;height: 35px;}
+            #save{width: 120px;height: 35px;}
+        </style>
+    </head>
+    <body class="body">
+        <button id="open">拍照</button>
+        <br/>
+        <br/>
+        <button id="save">存擋</button>
+        <div id="msg">
+        </div>
+        <div id="pic">
+
+        </div>
+    </body>
+    <script>
+        var openbtn = document.getElementById("open")
+        var save = document.getElementById("save")
+        var msg = document.getElementById("msg")
+        var pic = document.getElementById("pic")
+        var websocket
+        openbtn.onclick = function(){
+            websocket = new WebSocket("ws://localhost:3000/ws")
+            websocket.onopen=function(){
+                console.log("connected");
+            }
+            websocket.onmessage = function(e){
+                if (e.data != "儲存成功"){
+                console.log(e);
+                msg.innerHTML = "<p>拍照成功</p>"
+                pic.innerHTML = '<img src="data:image/jpg;base64,'+ e.data +'" width="100 height="200">'
+                img_data = e.data
+            }
+                else {
+                    msg.innerHTML = '<p>'+ e.data +'</p>'
+                }
+            }
+            websocket.onclose=function(e){
+                console.log("closed",e);
+            }
+        }
+        save.onclick=function(){
+            websocket.send(img_data)
+        }
+    </script>
+</html>

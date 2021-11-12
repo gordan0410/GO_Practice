@@ -1,20 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
-	"image"
-	"image/jpeg"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
-	_ "github.com/mattn/go-sqlite3"
 	"gocv.io/x/gocv"
 )
 
@@ -22,110 +16,117 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-//received Json from client which data is like {Msg: data} 
-type msg struct {
-	Msg string
+func main() {
+	http.Handle("/", http.FileServer(http.Dir("./template")))
+	http.HandleFunc("/ws", ws_connect)
+	err := http.ListenAndServe(":3000", nil)
+	if err != nil {
+		log.Fatalf("ListenAndServ failed: %v", err)
+	}
 }
 
-//decode_img to base64
-func encode_img(file_path string) (img_base64_str string ){
-	ff, _ := ioutil.ReadFile(file_path)                     //讀入
-	img_base64_str = base64.StdEncoding.EncodeToString(ff)  //文件轉base64
-	return img_base64_str	
-}
+func ws_connect(w http.ResponseWriter, r *http.Request) {
+	//判斷請求是否為websocket升級請求。
+	if websocket.IsWebSocketUpgrade(r) {
+		conn, err := upgrader.Upgrade(w, r, w.Header())
+		if err != nil {
+			fmt.Println("websocket upgrader.Upgrade failed: ", err)
+			return
+		}
+		
+		//設定設備id、執行拍照、取得img.jpg的[]byte
+		device_id := 0
+		img_byte, err := camera(device_id)
+		if err != nil {
+			fmt.Println("func camera failed: ", err)
+			return
+		}
 
-func decode_img(msg string){
-	ff, _ := base64.StdEncoding.DecodeString(msg)
-	img, _, _ := image.Decode(bytes.NewReader(ff))
-	out, err := os.Create("./save_selfie.jpg")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		//轉jpg -> base64並傳送至前端
+		img_base64 := encode_img(img_byte)
+		err = conn.WriteMessage(websocket.TextMessage, []byte(img_base64))
+		if err != nil {
+			fmt.Println("conn.WriteMessage failed: ", err)
+			return
+		}
+
+		// 持續接收與回覆訊息
+		for{
+		_, c, err := conn.ReadMessage()
+		if err != nil {
+			fmt.Println("websocket conn.ReadMessage() failed: ", err)
+			return
+		}
+		img_base64_return := string(c)
+		err = decode_img_and_save(img_base64_return)
+		if err == nil {
+			conn.WriteMessage(websocket.TextMessage, []byte("儲存成功"))
+		}
+		}
+	} else {
+		fmt.Println("not connected")
+		return
 	}
-
-	err = jpeg.Encode(out, img, nil)
-
-	if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-	}
-
 }
 
 //picture
-func camera(device_id int) {
+func camera(device_id int) ([]byte, error) {
 	// 確認catch到攝影機
 	webcam, err := gocv.VideoCaptureDevice(device_id)
 	if err != nil {
-		fmt.Printf("Error opening video capture device: %v\n", device_id)
-		return
+		fmt.Printf("Error opening video capture device: %v\n", err)
+		return nil, err
 	}
-	defer webcam.Close()
 
-	// 新增Window and Mat
+	// 等待鏡頭開啟（暖機）(約300ms抓500ms)
+	time.Sleep(500 * time.Millisecond)
+
+	// 新增Mat
 	img := gocv.NewMat()
-	defer img.Close()
-	for i := 0; i < 1; i++ {
-		webcam.Read(&img)
-		if ok := webcam.Read(&img); !ok {
-			fmt.Printf("Erro reading the device : %v\n", device_id)
-		}
+
+	// 讀取畫面進Mat
+	if ok := webcam.Read(&img); !ok {
+		fmt.Println("Erro happended in webcam.Read.")
+		return nil, err
 	}
-	gocv.IMWrite("selfie.jpg", img)
+
+	// 照片轉為jpeg碼並轉為[]byte形式
+	img_jpg, err := gocv.IMEncode(gocv.JPEGFileExt, img)
+	if err != nil {
+		fmt.Println("gocv.IMEncode failed")
+		return nil, err
+	}
+	img_byte := img_jpg.GetBytes()
+
+	// 關機
+	err = img.Close()
+	if err != nil {
+		fmt.Println("img.Close() failed")
+		return nil, err
+	}
+	err = webcam.Close()
+	if err != nil {
+		fmt.Println("webcam.Close failed")
+		return nil, err
+	}
+	return img_byte, nil
 }
 
-// take picture and decode, then send back to client
-func ws_takeandshow_pic(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, w.Header())
-	if err != nil {
-		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
-	}
-
-	device_id := 0
-	camera(device_id)
-	f := encode_img("./selfie.jpg")
-    
-
-	time.Sleep(time.Second)
-	if err = c.WriteJSON(f); err != nil {
-		log.Println(err)
-	}
-
-	defer c.Close()
+func encode_img(img []byte) (img_base64_str string) { //讀入
+	img_base64_str = base64.StdEncoding.EncodeToString(img) //文件轉base64
+	return img_base64_str
 }
 
-
-// take picture and save pic in database
-func ws_save_pic(w http.ResponseWriter, r *http.Request){
-	c, err := upgrader.Upgrade(w, r, w.Header())
+func decode_img_and_save(img_base64 string) error {
+	ff, err := base64.StdEncoding.DecodeString(img_base64)
 	if err != nil {
-		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
+		fmt.Println("os.WriteFile faild: ", err)
+		return err
 	}
-	defer c.Close()
-	req := msg{}
-
-	err = c.ReadJSON(&req)
+	err = os.WriteFile("selfie_save.jpg", ff, 0740)
 	if err != nil {
-		fmt.Println("Error reading json.", err)
+		fmt.Println("os.WriteFile faild: ", err)
+		return err
 	}
-
-	r_msg := req.Msg
-	pic_base64 := strings.Replace(r_msg, "\"", "", -1)
-	decode_img(pic_base64)
-
-}
-
-func start_websocket(){
-	http.HandleFunc("/ws_takeandshow_pic", ws_takeandshow_pic)
-	http.HandleFunc("/ws_save_pic", ws_save_pic)
-	err := http.ListenAndServe(":3000", nil)
-	if err != nil {
-		log.Fatal("ListenAndServ: ", err)
-	}
-}
-
-
-
-func main() {
-	start_websocket()
+	return nil
 }
