@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">            <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+        <body class="body">
+        <div class="container">
+            <br>
+            <div class="row">
+                <div class="col-4"></div>
+                <div class="col-4 d-flex justify-content-center">
+                    <div id="input_region">
+                        <input id="input">
+                        <button id="send" type="button" class="btn btn-primary">傳送</button>
+                    </div>
+                </div> 
+                <div class="col-4"></div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-4"></div>
+                <div class="col-4">
+                    <div class="card d-flex justify-content-center">
+                        <ul id="msg" class="list-group list-group_flush">
+                        </ul>
+                    </div>
+                </div> 
+                <div class="col-4"></div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-4"></div>
+                    <button id="previous_page" type="button" class="btn btn-success">上一頁</button>
+                    <p>&emsp;</p>
+                    <button id="next_page" type="button" class="btn btn-success">下一頁</button>
+                <div class="col-1">
+                </div> 
+                <div class="col-3">
+                    <button id="delete" type="button" class="btn btn-danger">刪除完成事項</button>
+                </div>
+            </div>
+    </div>
+    </body>
+    <style>
+    </style>
+    <script>
+        var send = document.getElementById("send")
+        var msg = document.getElementById("msg")
+        var input = document.getElementById("input")
+        var websocket
+        var page = 1
+        $(document).ready(function(){
+            websocket = new WebSocket("ws://localhost:3000/ws")
+            websocket.onopen=function(){
+                console.log("connected");
+            };
+            websocket.onmessage = function(e){
+                console.log("message")
+                var msg = JSON.parse(e.data);
+                console.log(e.data)
+                for (m in msg){
+                    if (msg[m].Status == "1") {
+                        $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ msg[m].ID +'"><label class="form-check-label" for="defaultCheck1">'+msg[m].Subject+'</div></li>');
+                    } else if (msg[m].Status == "2") {
+                        $("#msg").append('<li class="list-group-item" style="background-color: lightgrey"><div class="form-check"><input class="form-check-input checked" type="checkbox" value="" id="'+ msg[m].ID +'" checked="checked"><label class="form-check-label" for="defaultCheck1" style="text-decoration: line-through">'+msg[m].Subject+'</div></li>');
+
+                    }
+                }
+            };
+            websocket.onclose=function(e){
+                console.log("closed",e);
+            };
+        })
+
+        // 新增
+        send.onclick = function(){
+            websocket = new WebSocket("ws://localhost:3000/ws_create")
+            websocket.onopen=function(){
+                console.log("connected");
+                if(input.value == ""){
+                alert("請輸入事項")
+                websocket.close();
+                }else{
+                var msg = JSON.stringify({Type:"create", Subject:input.value})
+                websocket.send(msg)
+                }
+            }
+            websocket.onmessage = function(e){
+                console.log("message")
+                if (e.data == "create success"){
+                    window.location.reload();
+                } else {
+                    console.log(e.data)
+                }
+            }
+            websocket.onclose=function(){
+                console.log("closed");
+                input.value = ""
+            }
+        };
+        
+        // 上一頁
+        $("body").on("click","#previous_page", function(){
+            websocket = new WebSocket("ws://localhost:3000/ws_page")
+            websocket.onopen=function(){
+                console.log("connected");
+                websocket.send(page-1)
+            }
+            websocket.onmessage = function(e){
+                console.log("message")
+                console.log(e.data)
+                if (e.data == "no other page"){
+                    alert("沒有其他頁面")
+                    websocket.close();
+                } else {
+                    var msg = JSON.parse(e.data);
+                    page--
+                    $(".form-check-input").closest(".list-group-item").remove()
+                    for (m in msg){
+                        if (msg[m].Status == "1") {
+                            $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ msg[m].ID +'"><label class="form-check-label" for="defaultCheck1">'+msg[m].Subject+'</div></li>');
+                        } else if (msg[m].Status == "2") {
+                            $("#msg").append('<li class="list-group-item" style="background-color: lightgrey"><div class="form-check"><input class="form-check-input checked" type="checkbox" value="" id="'+ msg[m].ID +'" checked="checked"><label class="form-check-label" for="defaultCheck1" style="text-decoration: line-through">'+msg[m].Subject+'</div></li>');
+
+                        }
+                    }
+                }
+            }
+            websocket.onclose=function(e){
+                console.log("closed",e);
+            }
+        })
+        
+        // 下一頁
+        $("body").on("click","#next_page", function(){
+            websocket = new WebSocket("ws://localhost:3000/ws_page")
+            websocket.onopen=function(){
+                console.log("connected");
+                websocket.send(page+1)
+            }
+            websocket.onmessage = function(e){
+                console.log("message")
+                console.log(e.data)
+                if (e.data == "no other page"){
+                    alert("沒有其他頁面")
+                    websocket.close();
+                } else {
+                    var msg = JSON.parse(e.data);
+                    page++
+                    console.log(page)
+                    $(".form-check-input").closest(".list-group-item").remove()
+                    for (m in msg){
+                        if (msg[m].Status == "1") {
+                            $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ msg[m].ID +'"><label class="form-check-label" for="defaultCheck1">'+msg[m].Subject+'</div></li>');
+                        } else if (msg[m].Status == "2") {
+                            $("#msg").append('<li class="list-group-item" style="background-color: lightgrey"><div class="form-check"><input class="form-check-input checked" type="checkbox" value="" id="'+ msg[m].ID +'" checked="checked"><label class="form-check-label" for="defaultCheck1" style="text-decoration: line-through">'+msg[m].Subject+'</div></li>');
+
+                        }
+                    }
+                }
+            }
+            websocket.onclose=function(e){
+                console.log("closed",e);
+            }
+        })
+
+        // 已完成（已選擇）
+        $("body").on("click",".form-check-input", function(){
+            var act_id = $(this).attr("id")
+            if ($(this).hasClass("unchecked")){
+                var msg = JSON.stringify({Type:"complete", Id:act_id})
+                $(this).removeClass("unchecked").addClass("checked")
+                $(this).siblings("label").css("text-decoration", "line-through")
+                $(this).closest(".list-group-item").css("background-color", "lightgrey")
+            } else if ($(this).hasClass("checked")){
+                var msg = JSON.stringify({Type:"active", Id:act_id})
+                $(this).removeClass("checked").addClass("unchecked")
+                $(this).siblings("label").css("text-decoration", "")
+                $(this).closest(".list-group-item").css("background-color", "")
+            } else {
+                alert("unknown class")
+            }
+            websocket = new WebSocket("ws://localhost:3000/ws_update")
+            websocket.onopen=function(){
+                websocket.send(msg)
+            }
+            websocket.onmessage = function(e){
+                console.log("message")
+                if (e.data == "data updated"){
+                    console.log(e.data)
+                } else if (e.data == "update in db failed") {
+                    console.log(e.data)
+                    alert("更新失敗")
+                } else {
+                    console.log("unknow problem")
+                    alert("錯誤")
+                }
+            }
+            websocket.onclose=function(){
+                console.log("closed");
+            }
+        })
+
+        // 刪除
+        $("body").on("click","#delete", function(){
+            websocket = new WebSocket("ws://localhost:3000/ws_delete")
+            websocket.onopen=function(){
+                console.log("connected");
+                var msg = "clear"
+                websocket.send(msg)
+            }
+            websocket.onmessage = function(e){
+                console.log("message")
+                if (e.data == "no object selected"){
+                    alert("請選擇欲刪除項目")
+                } else if (e.data == "data updated"){
+                    console.log(e.data)
+                    alert("刪除完成")
+                    window.location.reload();
+                } else {
+                    alert("錯誤")
+                    console.log(e.data)
+                }
+            }
+            websocket.onclose=function(){
+                console.log("closed");
+            }
+            
+        })
+    </script>
+</html>
