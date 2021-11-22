@@ -1,29 +1,29 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
-
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 // 資料庫連接資料
-const (
-	Username string = "root"
-	Password string = "root"
-	Addr string = "localhost:3306"
-	Database string = "test"
-	Max_lifetime int = 10
-	Max_openconns int = 10
-	Max_idleconns int = 10
-)
+type Db_message struct{
+	Username string 
+	Password string 
+	Addr string 
+	Database string 
+	Max_lifetime int 
+	Max_openconns int 
+	Max_idleconns int 
+}
 
 // 建立table
 type Todolist struct {
@@ -33,44 +33,64 @@ type Todolist struct {
 	CreatedAt	time.Time    	`gorm:"type:timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP"`
 }
 
-// 接收create Json
-type Msg_new struct{
-	Type, Subject string
-}
-
-// 接收update Json
-type Msg_update struct{
-	Type, Id string
-}
-
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
-
-// 資料庫連接
-var dsn = fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true", Username, Password, Addr, Database)
-var db_conn, db_conn_err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
-var db, db_err = db_conn.DB()
+// db連線
+var db_conn *gorm.DB
+var db_conn_err error
 
 // 幾筆資料一頁
-var slice_target = 3
+var slice_target = 4
 
 func main() {
-	if db_conn_err != nil{
-		println("gorm.Open failed: ", db_conn_err)
+	// 開啟DB(user_info.json)
+	load_database("./config.json")
+	// 開啟gin
+	set_router()
+}
+
+// 錯誤處理
+func mistake_control(err error, line int ,func_name string){
+	if err != nil{
+		fmt.Printf("line %d, %s failed: %v", line, func_name, err)
+		return
+	} else {
 		return
 	}
+}
+
+func load_database(addr string){
+	// 讀取config.json資料
+	file, err := os.Open("./config.json")
+	if err != nil {
+		mistake_control(err, 62, "os.Open")
+		return
+	}
+	var msg Db_message
+	d_data := json.NewDecoder(file)
+	err = d_data.Decode(&msg)
+	if err != nil {
+		mistake_control(err, 69, "json.Decode")
+		return
+	}
+	
+	// 資料庫連接
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true", msg.Username, msg.Password, msg.Addr, msg.Database)
+	db_conn, db_conn_err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if db_conn_err != nil{
+		mistake_control(db_conn_err, 77, "gorm.Open")
+		return
+	}
+	db, db_err := db_conn.DB()
 	if db_err != nil{
-		println("conn.DB failed: ", db_err)
+		mistake_control(db_err, 82, "db_conn.DB()")
 		return
 	}
 
 	// 確保資料庫安全關閉
-	db.SetConnMaxLifetime(time.Duration(Max_lifetime) * time.Second)
+	db.SetConnMaxLifetime(time.Duration(msg.Max_lifetime) * time.Second)
 	// 閒置連接數（官方建議跟SetMaxOpenConns一致）
-	db.SetMaxIdleConns(Max_idleconns)
+	db.SetMaxIdleConns(msg.Max_idleconns)
 	// 限制資料庫連接數
-	db.SetMaxOpenConns(Max_openconns)
+	db.SetMaxOpenConns(msg.Max_openconns)
 	
 	// 更新資料庫資料
 	db_conn.Debug().AutoMigrate(&Todolist{})
@@ -82,8 +102,6 @@ func main() {
 		fmt.Println("table not exist")
 		return
 	}
-	// 開啟gin
-	set_router()
 }
 
 func set_router(){
@@ -91,327 +109,213 @@ func set_router(){
 	r.NoRoute(func(c *gin.Context) {
 		c.File("./template")
 	})
-	r.GET("/ws", ws_get)  // 首頁
-	r.GET("/ws_page", ws_page)  // 換頁
-	r.GET("/ws_create", ws_create)  // 建立
-	r.GET("/ws_update", ws_update)  // 更新
-	r.GET("/ws_delete", ws_delete)	// 刪除
+	r.GET("/api", get)  // 首頁
+	r.POST("/api", create)  // 建立
+	r.PATCH("/api", update)  // 更新
+	r.DELETE("/api", delete)	// 刪除
+
 	err := r.Run(":3000")
 	if err != nil{
-		println("line 99, can't run route: ", err)
+		mistake_control(err, 117, "router.Run")
+		return
 	}
 }
 
-func ws_get(c *gin.Context) {
-	if websocket.IsWebSocketUpgrade(c.Request) {
-		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-		if err != nil {
-			fmt.Println("line 107, websocket upgrader.Upgrade failed: ", err)
+// DB搜尋方法，參數為前端回傳group資料＋DB資料限制讀取數＋資料忽略數（之後可再把limit and offset給前端做調整）
+func db_search_group(c *gin.Context, limit_record, offset_record int) func(db *gorm.DB) *gorm.DB{
+	return func(db *gorm.DB) *gorm.DB{
+		group := c.Query("group")
+		switch {
+		case group == "all":
+			return db.Where("Status <> ?", 0).Offset(offset_record).Limit(limit_record)
+		case group == "active":
+			return db.Where("Status = ?", 1).Offset(offset_record).Limit(limit_record)
+		case group == "complete":
+			return db.Where("Status = ?", 2).Offset(offset_record).Limit(limit_record)
+		default:
+			return db.Where("Status <> ?", 0).Offset(offset_record).Limit(limit_record)
+		}
+	}
+}
+
+// 設定db頁面呈現方式，參數為前端回傳當前page資料＋欲顯示分頁數（之後可再把分頁數給前端做調整）
+func db_search_page(c *gin.Context, slice_target int) func(db *gorm.DB) *gorm.DB{
+	return func(db *gorm.DB) *gorm.DB{
+		msg := c.Query("page")
+		page, err := strconv.Atoi(msg)
+		mistake_control(err ,145, "strconv.Atoi")
+		offset := (page-1)*slice_target
+		return db.Offset(offset).Limit(slice_target)
+	}
+}
+
+func get(c *gin.Context) {
+
+	var todolists []Todolist
+
+	// 查詢所有非0（軟刪除的）data
+	result := db_conn.Debug().Order("id desc").Scopes(db_search_group(c, 100, 0),db_search_page(c, slice_target)).Find(&todolists)	
+	if result.Error != nil{
+		mistake_control(result.Error, 157, "db query")
+		c.String(http.StatusBadRequest, "db query error")
+		return
+	}
+
+	if len(todolists)> 0{
+		c.JSON(http.StatusOK, todolists)
+		fmt.Println("data sent: ",todolists)
+	} else {
+		c.String(http.StatusBadRequest, "no other page")
+		fmt.Println("no other page")
+		return
+	}
+}
+
+
+func create(c *gin.Context) {
+	// 接收前端訊息
+	subject := c.PostForm("subject")
+	if subject ==""{
+		c.String(http.StatusBadRequest, "subject is empty")
+		fmt.Println("subject is empty")
+		return
+	}
+
+	// 建立資料並寫入
+	create := Todolist{Subject: subject, Status: 1}
+	result := db_conn.Debug().Create(&create)
+		if result.Error != nil {
+			mistake_control(result.Error, 186, "db_conn.Debug().Create(&create)")
+			c.String(http.StatusBadRequest, "db create error")
 			return
 		}
-		defer conn.Close()
+		if result.RowsAffected != 1 {
+			fmt.Println("add more than one object")
+			c.String(http.StatusBadRequest, "bad request")
+			return
+		}
+		c.String(http.StatusOK, "created")
+		fmt.Println("new data created: ", create)
+}
+
+func update(c *gin.Context) {
+	// 接收前端訊息
+	id := c.PostForm("id")
+	id_int, err := strconv.Atoi(id)
+	if err != nil {
+		mistake_control(err, 204, "strconv.Atoi")
+		c.String(http.StatusBadRequest, "id problem")
+		return
+	}
+
+	status := c.PostForm("status")
+	if status == "" {
+		fmt.Println("status is empty")
+		c.String(http.StatusBadRequest, "status is empty")
+		return
+	}
+	
+	var todolist Todolist
+
+	// 先找出欲異動資料
+	result := db_conn.Debug().Where("ID = ? AND Status <> ?", uint(id_int), 0).Take(&todolist)
+	if result.Error != nil{
+		if errors.Is(result.Error, gorm.ErrRecordNotFound){
+			mistake_control(result.Error, 221, "subject can't find")
+			c.String(http.StatusBadRequest, "can't find this subject")
+			return
+		}else {
+			mistake_control(result.Error, 221, "db error")
+			c.String(http.StatusBadRequest, "db error")
+			return
+		}
+	}
 		
-		var todolists []Todolist
-		
-		// 查詢所有非0（軟刪除的）data
-		result := db_conn.Debug().Where("Status <> ?", 0).Find(&todolists)
+	// 判斷訊息類型為"complete" or "active"
+	// complete則更新指定ID的status為2（已完成的）
+	if status == "complete" {
+		// 更新
+		result = db_conn.Debug().Model(&todolist).Update("Status", "2")
 		if result.Error != nil{
-			if errors.Is(result.Error, gorm.ErrRecordNotFound){
-				fmt.Println("line 117, can't find this subject", result.Error)
-				return
-			}else {
-				fmt.Println("line 117, result.Error", result.Error)
-				return
-			}
-		}
-
-		// reverse 查詢後的資料並依照slice_target數呈現資料
-		reverse_todolists := reverse(todolists)
-		slice_data := reverse_todolists[:slice_target]
-		err = conn.WriteJSON(slice_data)
-		if err != nil {
-			fmt.Println("line 131, conn.WriteJson failed:", err)
+			mistake_control(result.Error, 238, "db updated failed")
+			c.String(http.StatusBadRequest, "db updated failed")
 			return
 		}
-	} else {
-		fmt.Println("line 106, can't connect websocket")
-		return
-	}
-}
+		c.String(http.StatusOK, "updated")
+		fmt.Println("data updated: ", todolist)
 
-func ws_page(c *gin.Context){
-	if websocket.IsWebSocketUpgrade(c.Request) {
-		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-		if err != nil {
-			fmt.Println("line 144, websocket upgrader.Upgrade failed: ", err)
-			return
-		}
-		defer conn.Close()
-		
-		var todolists []Todolist
-
-		// 查詢所有非0（軟刪除的）data
-		result := db_conn.Debug().Where("Status <> ?", 0).Find(&todolists)
-		if result.Error != nil{
-			if errors.Is(result.Error, gorm.ErrRecordNotFound){
-				fmt.Println("line 154, can't find this subject", result.Error)
-				return
-			}else {
-				fmt.Println("line 154, result.Error", result.Error)
-				return
-			}
-		}
-		// reverse querying data 並根據前端頁面回傳資料切片
-		reverse_todolists := reverse(todolists)
-		_, page, err:=conn.ReadMessage()
-		if err != nil {
-			fmt.Println("line 166, conn.ReadMessage failed: ", err)
-			return
-		}
-		page_int, err := strconv.Atoi(string(page))
-		if err != nil {
-			fmt.Println("line 171, strconv.Atoi failed: ", err)
-			return
-		}
-		total_object := len(reverse_todolists)
-		add := 0
-		if total_object % slice_target > 0 {
-			add = 1
-		}
-		total_page := total_object / slice_target + add
-		if slice_target * page_int <= total_object && slice_target * page_int > 0 {
-			slice_data := reverse_todolists[slice_target * (page_int - 1) : slice_target * page_int]
-			err = conn.WriteJSON(slice_data)
-			if err != nil {
-				fmt.Println("line 184, conn.WriteJson failed:", err)
-				return
-			}
-		} else if slice_target * page_int > total_object && page_int == total_page {
-			slice_data := reverse_todolists[slice_target * (page_int - 1) : total_object]
-			err = conn.WriteJSON(slice_data)
-			if err != nil {
-				fmt.Println("line 191, conn.WriteJson failed:", err)
-				return
-			}
-		} else {
-			fmt.Println("no other page")
-			err = conn.WriteMessage(websocket.TextMessage, []byte("no other page"))
-			if err != nil {
-				fmt.Println("line 198, conn.Writemessage failed:", err)
-				return
-			}
-		}
-	} else {
-		fmt.Println("can't connect websocket")
-		return
-	}
-}
-
-// reverse querying Todolist struct for ws_get and we_page
-func reverse(array []Todolist) []Todolist {
-	for i, j := 0, len(array)-1; i < j; i, j = i+1, j-1 {
-		array[i], array[j] = array[j], array[i]
-	}
-	return array
-}
-
-func ws_create(c *gin.Context) {
-	if websocket.IsWebSocketUpgrade(c.Request) {
-		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-		if err != nil {
-			fmt.Println("line 220, websocket upgrader.Upgrade failed: ", err)
-			return
-		}
-		defer conn.Close()
-
-		// 接收前端訊息
-		var msg Msg_new
-		err = conn.ReadJSON(&msg)
-		if err != nil {
-			fmt.Println("line 229, conn.ReadJson failed:", err)
-			return
-		}
-		// 判斷訊息類型是否為"create"，若是則新增
-		if msg.Type == "create" {
-			create := Todolist{Subject: msg.Subject, Status: 1}
-			result := db_conn.Debug().Create(&create)
-			if result.Error != nil {
-				fmt.Println("line 237, Create failt")
-				return
-			}
-			if result.RowsAffected != 1 {
-				fmt.Println("line 237, RowsAffected Number failt")
-				return
-			}
-			conn.WriteMessage(websocket.TextMessage, []byte("create success"))
-			if err != nil {
-				fmt.Println("line 246, conn.WriteMessage falied: ", err)
-				return
-			}
-		// 若無則回傳錯誤
-		} else {
-			fmt.Println("message type wrong")
-			conn.WriteMessage(websocket.TextMessage, []byte("message type wrong"))
-			if err != nil {
-				fmt.Println("line 254, conn.WriteMessage falied: ", err)
-				return
-			}
-		}
-	} else {
-		fmt.Println("can't connect websocket")
-		return
-	}
-}
-
-func ws_update(c *gin.Context) {
-	if websocket.IsWebSocketUpgrade(c.Request) {
-		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-		if err != nil {
-			fmt.Println("line 268, websocket upgrader.Upgrade failed: ", err)
-			return
-		}
-		defer conn.Close()
-		
-		// 接收前端訊息
-		var msg Msg_update
-		err = conn.ReadJSON(&msg)
-		if err != nil {
-			fmt.Println("line 277, conn.ReadJson failed:", err)
-			return
-		}
-
-		var todolist Todolist
-		// 判斷訊息類型為"complete" or "active"
-		// complete則更新指定ID的status為2（已完成的）
-		if msg.Type == "complete" {
-			// 轉前端id為int
-			id_int, err := strconv.Atoi(msg.Id)
-			if err != nil {
-				fmt.Println("line 288, ID convert to int failed")
-				return
-			}
-			// 查詢指定ID是否存在
-			result := db_conn.Debug().Where("ID = ?", uint(id_int)).Take(&todolist)
-			if result.Error != nil{
-				if errors.Is(result.Error, gorm.ErrRecordNotFound){
-					fmt.Println("line 294, can't find this subject", result.Error)
-					return
-				}else {
-					fmt.Println("line 294, result.Error", result.Error)
-					return
-				}
-			}
-			// 更新
-			result = db_conn.Debug().Model(&todolist).Update("Status", "2")
-			if result.Error != nil{
-				fmt.Println("line 305, result.Error", result.Error)
-				return
-			}
-			conn.WriteMessage(websocket.TextMessage, []byte("data updated"))
-			if err != nil {
-				fmt.Println("line 305, conn.WriteMessage falied: ", err)
-				return
-			}
 		// active則更新指定ID的status為1（未完成的）
-		} else if msg.Type == "active" {
-			// 轉前端id為int
-			id_int, err := strconv.Atoi(msg.Id)
-			if err != nil {
-				fmt.Println("line 318, ID convert to int failed")
-				return
-			}
-			// 查詢指定ID是否存在
-			result := db_conn.Debug().Where("ID = ?", uint(id_int)).Take(&todolist)
-			if result.Error != nil{
-				if errors.Is(result.Error, gorm.ErrRecordNotFound){
-					fmt.Println("line 324, can't find this subject", result.Error)
-					return
-				}else {
-					fmt.Println("line 324, result.Error", result.Error)
-					return
-				}
-			}
-			// 更新
-			result = db_conn.Debug().Model(&todolist).Update("Status", "1")
-			if result.Error != nil{
-				fmt.Println("line 335, result.Error", result.Error)
-				return
-			}
-			conn.WriteMessage(websocket.TextMessage, []byte("data updated"))
-			if err != nil {
-				fmt.Println("line 340, conn.WriteMessage falied: ", err)
-				return
-			}
-		// 非"complete" or "active"則錯誤
-		} else {
-			fmt.Println("unknow action type")
-			conn.WriteMessage(websocket.TextMessage, []byte("updated in db failed"))
-			if err != nil {
-				fmt.Println("line 348, conn.WriteMessage falied: ", err)
-				return
-			}
+	} else if status == "active" {
+		// 更新
+		result = db_conn.Debug().Model(&todolist).Update("Status", "1")
+		if result.Error != nil{
+			mistake_control(result.Error, 250, "db updated failed")
+			c.String(http.StatusBadRequest, "db updated failed")
+			return
 		}
+		c.String(http.StatusOK, "updated")
+		fmt.Println("data updated: ", todolist)
+
+	// 判斷是否為更改標題
+	} else if status == "subject_change" {
+		subject := c.PostForm("subject")
+		if subject == "" {
+			fmt.Println("subject is empty")
+			c.String(http.StatusBadRequest, "subject is empty")
+			return
+		}
+		result = db_conn.Debug().Model(&todolist).Update("Subject", subject)
+		if result.Error != nil{
+			mistake_control(result.Error, 267, "db updated failed")
+			c.String(http.StatusBadRequest, "db updated failed")
+			return
+		}
+		c.String(http.StatusOK, "updated")
+		fmt.Println("data updated: ", todolist)
+
+	// 非以上則錯誤
 	} else {
-		fmt.Println("can't connect websocket")
+		fmt.Println("unknow action type")
+		c.String(http.StatusBadRequest, "can't find this status")
 		return
 	}
 }
 
-func ws_delete(c *gin.Context) {
-	// 驗證websocket
-	if websocket.IsWebSocketUpgrade(c.Request) {
-		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-		if err != nil {
-			fmt.Println("line 363, websocket upgrader.Upgrade failed: ", err)
-			return
+func delete(c *gin.Context) {
+	var todolist []Todolist
+	count := 0
+	// 若資料量>100, 則分批刪除
+	for{
+		result := db_conn.Debug().Where("Status = ?", 2).Limit(100).Select("ID", "Status").Find(&todolist)
+		if result.Error != nil{
+			if errors.Is(result.Error, gorm.ErrRecordNotFound){
+				mistake_control(result.Error, 221, "subject can't find")
+				c.String(http.StatusBadRequest, "can't find this subject")
+				break
+			}else {
+				fmt.Println("line 380, result.Error", result.Error)
+				break
+			}
 		}
-		defer conn.Close()
-		
-		// 讀取message是否為"clear"
-		_, msg, err := conn.ReadMessage()
-		if err != nil {
-			fmt.Println("line 371, conn.ReadMessage failed:", err)
-			return
-		}
-
-		var todolist []Todolist
-		if string(msg) == "clear" {
-			// Query status為2（已完成的）的資料
-			result := db_conn.Debug().Where("Status = ?", 2).Select("ID").Find(&todolist)
+		// 判斷是否有資料，無資料則回傳"no object selected"，以提示無資料經選取
+		if len(todolist) == 0 && count == 0{
+			fmt.Println("no object selected")
+			c.String(http.StatusBadRequest, "no object selected")
+			break
+		// 無剩餘可刪除，刪除結束	
+		} else if len(todolist) == 0 && count > 0{
+			fmt.Println("deleted ok, no object remain")
+			c.String(http.StatusOK, "all deleted")
+			break
+		// 有資料則更改status為0（軟刪除）
+		} else{
+			result = db_conn.Debug().Model(&todolist).Update("Status", "0")
 			if result.Error != nil{
-				if errors.Is(result.Error, gorm.ErrRecordNotFound){
-					fmt.Println("line 380, can't find this subject", result.Error)
-					return
-				}else {
-					fmt.Println("line 380, result.Error", result.Error)
-					return
-				}
+				mistake_control(result.Error, 312, "db error")
+				c.String(http.StatusBadRequest, "db error")
+				break
 			}
-			// 判斷是否有資料，無資料則回傳"no object selected"，以提示無資料經選取
-			if len(todolist) == 0 {
-				fmt.Println("no object selected")
-				err := conn.WriteMessage(websocket.TextMessage, []byte("no object selected"))
-				if err != nil {
-					fmt.Println("line 393, conn.WriteMessage falied: ", err)
-					return
-				}
-				return
-			// 有資料則更改status為0（軟刪除）
-			} else{
-				result = db_conn.Debug().Model(&todolist).Update("Status", "0")
-				if result.Error != nil{
-					fmt.Println("line 401, result.Error", result.Error)
-					return
-				}
-				err := conn.WriteMessage(websocket.TextMessage, []byte("data updated"))
-				if err != nil {
-					fmt.Println("line 406, conn.WriteMessage falied: ", err)
-					return
-				}
-			}
+			count++
 		}
-	} else {
-		fmt.Println("can't connect websocket")
-		return
 	}
 }

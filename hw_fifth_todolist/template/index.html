@@ -2,11 +2,13 @@
 <html>
     <head>
         <meta charset="utf-8">
+        <link rel="shortcut icon" href="#">    
         <title></title>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">            <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    </head>
         <body class="body">
         <div class="container">
             <br>
@@ -22,6 +24,18 @@
             </div>
             <br>
             <div class="row">
+                <div class="col-4">
+                </div>
+                <div class="col-4">
+                    <button id="all" type="button" class="btn btn-dark con_group">所有</button>
+                    <button id="active" type="button" class="btn btn-dark con_group">待辦</button>
+                    <button id="complete" type="button" class="btn btn-dark con_group">完成</button>
+                </div> 
+                <div class="col-4">
+                </div>
+            </div>
+            <br>
+            <div class="row">
                 <div class="col-4"></div>
                 <div class="col-4">
                     <div class="card d-flex justify-content-center">
@@ -33,13 +47,13 @@
             </div>
             <br>
             <div class="row">
-                <div class="col-4"></div>
-                    <button id="previous_page" type="button" class="btn btn-success">上一頁</button>
-                    <p>&emsp;</p>
-                    <button id="next_page" type="button" class="btn btn-success">下一頁</button>
-                <div class="col-1">
-                </div> 
+                <div class="col-4">
+                </div>
                 <div class="col-3">
+                    <button id="previous_page" type="button" class="btn btn-success">上一頁</button>
+                    <button id="next_page" type="button" class="btn btn-success">下一頁</button>
+                </div> 
+                <div class="col-4">
                     <button id="delete" type="button" class="btn btn-danger">刪除完成事項</button>
                 </div>
             </div>
@@ -48,188 +62,255 @@
     <style>
     </style>
     <script>
-        var send = document.getElementById("send")
         var msg = document.getElementById("msg")
         var input = document.getElementById("input")
-        var websocket
-        var page = 1
+        // 首頁
         $(document).ready(function(){
-            websocket = new WebSocket("ws://localhost:3000/ws")
-            websocket.onopen=function(){
-                console.log("connected");
-            };
-            websocket.onmessage = function(e){
-                console.log("message")
-                var msg = JSON.parse(e.data);
-                console.log(e.data)
-                for (m in msg){
-                    if (msg[m].Status == "1") {
-                        $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ msg[m].ID +'"><label class="form-check-label" for="defaultCheck1">'+msg[m].Subject+'</div></li>');
-                    } else if (msg[m].Status == "2") {
-                        $("#msg").append('<li class="list-group-item" style="background-color: lightgrey"><div class="form-check"><input class="form-check-input checked" type="checkbox" value="" id="'+ msg[m].ID +'" checked="checked"><label class="form-check-label" for="defaultCheck1" style="text-decoration: line-through">'+msg[m].Subject+'</div></li>');
-
-                    }
-                }
-            };
-            websocket.onclose=function(e){
-                console.log("closed",e);
-            };
-        })
-
-        // 新增
-        send.onclick = function(){
-            websocket = new WebSocket("ws://localhost:3000/ws_create")
-            websocket.onopen=function(){
-                console.log("connected");
-                if(input.value == ""){
-                alert("請輸入事項")
-                websocket.close();
-                }else{
-                var msg = JSON.stringify({Type:"create", Subject:input.value})
-                websocket.send(msg)
-                }
-            }
-            websocket.onmessage = function(e){
-                console.log("message")
-                if (e.data == "create success"){
-                    window.location.reload();
-                } else {
-                    console.log(e.data)
-                }
-            }
-            websocket.onclose=function(){
-                console.log("closed");
-                input.value = ""
-            }
-        };
-        
-        // 上一頁
-        $("body").on("click","#previous_page", function(){
-            websocket = new WebSocket("ws://localhost:3000/ws_page")
-            websocket.onopen=function(){
-                console.log("connected");
-                websocket.send(page-1)
-            }
-            websocket.onmessage = function(e){
-                console.log("message")
-                console.log(e.data)
-                if (e.data == "no other page"){
-                    alert("沒有其他頁面")
-                    websocket.close();
-                } else {
-                    var msg = JSON.parse(e.data);
-                    page--
-                    $(".form-check-input").closest(".list-group-item").remove()
-                    for (m in msg){
-                        if (msg[m].Status == "1") {
-                            $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ msg[m].ID +'"><label class="form-check-label" for="defaultCheck1">'+msg[m].Subject+'</div></li>');
-                        } else if (msg[m].Status == "2") {
-                            $("#msg").append('<li class="list-group-item" style="background-color: lightgrey"><div class="form-check"><input class="form-check-input checked" type="checkbox" value="" id="'+ msg[m].ID +'" checked="checked"><label class="form-check-label" for="defaultCheck1" style="text-decoration: line-through">'+msg[m].Subject+'</div></li>');
-
+            var page = 1
+            var group = "all"
+            $(".container").data("group", group)
+            $(".container").data("page", page)
+            $.ajax({
+                url: "/api",
+                method: "GET",
+                dataType: "json",
+                data: {
+                    "page":page,
+                    "group":group,
+                },
+                success: function(data){
+                    console.log(data)
+                    for (let i=0; i<data.length; i++) {
+                        console.log(i)
+                        if (data[i].Status == "1") {
+                            $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ data[i].ID +'"><label class="form-check-label" for="defaultCheck1">'+data[i].Subject+'</div></li>');
+                        } else if (data[i].Status == "2") {
+                            $("#msg").append('<li class="list-group-item" style="background-color: lightgrey"><div class="form-check"><input class="form-check-input checked" type="checkbox" value="" id="'+ data[i].ID +'" checked="checked"><label class="form-check-label" for="defaultCheck1" style="text-decoration: line-through">'+data[i].Subject+'</div></li>');
                         }
                     }
-                }
-            }
-            websocket.onclose=function(e){
-                console.log("closed",e);
-            }
-        })
-        
+                },
+                error: function(data){
+                    console.log(data.responseText)
+                } 
+            });
+        });
+
+        // 分群
+        $("body").on("click","button.con_group", function(){
+            group = $(this).attr("id")
+            $(".container").data("group", group)
+            page = 1
+            $(".container").data("page", page)
+            $(".form-check-input").closest(".list-group-item").remove()
+            $.ajax({
+                url: "/api",
+                method: "GET",
+                dataType: "json",
+                data: {
+                    "page":page,
+                    "group":group,
+                },
+                success: function(data){
+                    for (let i=0; i<data.length; i++) {
+                        console.log(i)
+                        if (data[i].Status == "1") {
+                            $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ data[i].ID +'"><label class="form-check-label" for="defaultCheck1">'+data[i].Subject+'</div></li>');
+                        } else if (data[i].Status == "2") {
+                            $("#msg").append('<li class="list-group-item" style="background-color: lightgrey"><div class="form-check"><input class="form-check-input checked" type="checkbox" value="" id="'+ data[i].ID +'" checked="checked"><label class="form-check-label" for="defaultCheck1" style="text-decoration: line-through">'+data[i].Subject+'</div></li>');
+                        }
+                    }
+                },
+                error: function(data){
+                    console.log(data.responseText)
+                } 
+            });
+        });
+
+
         // 下一頁
         $("body").on("click","#next_page", function(){
-            websocket = new WebSocket("ws://localhost:3000/ws_page")
-            websocket.onopen=function(){
-                console.log("connected");
-                websocket.send(page+1)
-            }
-            websocket.onmessage = function(e){
-                console.log("message")
-                console.log(e.data)
-                if (e.data == "no other page"){
-                    alert("沒有其他頁面")
-                    websocket.close();
-                } else {
-                    var msg = JSON.parse(e.data);
-                    page++
-                    console.log(page)
+            var group = $(".container").data("group")
+            var page =  $(".container").data("page")
+            console.log(group, page)
+            $.ajax({
+                url: "/api",
+                method: "GET",
+                data: {
+                    page:page+1,
+                    "group":group,
+                },
+                success: function(data){
+                    console.log(data)
+                    $(".container").data("page", page+1)
                     $(".form-check-input").closest(".list-group-item").remove()
-                    for (m in msg){
-                        if (msg[m].Status == "1") {
-                            $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ msg[m].ID +'"><label class="form-check-label" for="defaultCheck1">'+msg[m].Subject+'</div></li>');
-                        } else if (msg[m].Status == "2") {
-                            $("#msg").append('<li class="list-group-item" style="background-color: lightgrey"><div class="form-check"><input class="form-check-input checked" type="checkbox" value="" id="'+ msg[m].ID +'" checked="checked"><label class="form-check-label" for="defaultCheck1" style="text-decoration: line-through">'+msg[m].Subject+'</div></li>');
-
+                    for (let i=0; i<data.length; i++) {
+                            console.log(i)
+                            if (data[i].Status == 1) {
+                                $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ data[i].ID +'"><label class="form-check-label" for="defaultCheck1">'+data[i].Subject+'</div></li>');
+                            } else if (data[i].Status == 2) {
+                                $("#msg").append('<li class="list-group-item" style="background-color: lightgrey"><div class="form-check"><input class="form-check-input checked" type="checkbox" value="" id="'+ data[i].ID +'" checked="checked"><label class="form-check-label" for="defaultCheck1" style="text-decoration: line-through">'+data[i].Subject+'</div></li>');
+                            }
                         }
-                    }
+                },
+                error: function(data){
+                    $(".container").data("page", page)
+                    console.log(data.responseText)
+                    alert("已無其他分頁")
+                    console.log(group, page)
                 }
-            }
-            websocket.onclose=function(e){
-                console.log("closed",e);
-            }
-        })
+            });
+        });
 
+        //上一頁
+        $("body").on("click","#previous_page", function(){
+            var group = $(".container").data("group")
+            var page =  $(".container").data("page")
+            console.log(group, page)
+            if (page<=1){
+                alert("已無其他分頁")
+                return
+            }
+            $.ajax({
+                url: "/api",
+                method: "GET",
+                data: {
+                    page:page-1,
+                    "group":group,
+                },
+                success: function(data){
+                    console.log(data)
+                    $(".container").data("page", page-1)
+                    $(".form-check-input").closest(".list-group-item").remove()
+                    for (let i=0; i<data.length; i++) {
+                            console.log(i)
+                            if (data[i].Status == 1) {
+                                $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ data[i].ID +'"><label class="form-check-label" for="defaultCheck1">'+data[i].Subject+'</div></li>');
+                            } else if (data[i].Status == 2) {
+                                $("#msg").append('<li class="list-group-item" style="background-color: lightgrey"><div class="form-check"><input class="form-check-input checked" type="checkbox" value="" id="'+ data[i].ID +'" checked="checked"><label class="form-check-label" for="defaultCheck1" style="text-decoration: line-through">'+data[i].Subject+'</div></li>');
+                            }
+                        }
+                },
+                error: function(data){
+                    $(".container").data("page", page)
+                    console.log(data.responseText)
+                    alert("已無其他分頁")
+                    console.log(group, page)
+                }
+            });
+        });
+
+
+        // 新增
+        $("body").on("click","#send", function(){
+            if(input.value == ""){
+                alert("請輸入事項")
+                return
+            }
+            $.ajax({
+                url: "/api",
+                method: "POST",
+                data: {
+                    subject:input.value
+                },
+                success: function(data){
+                    window.location.reload();
+                }, 
+                error: function(data){
+                    console.log(data.responseText)
+                }
+            });
+        });
+        
+        
         // 已完成（已選擇）
         $("body").on("click",".form-check-input", function(){
             var act_id = $(this).attr("id")
+            var status
             if ($(this).hasClass("unchecked")){
-                var msg = JSON.stringify({Type:"complete", Id:act_id})
+                status = "complete"
                 $(this).removeClass("unchecked").addClass("checked")
                 $(this).siblings("label").css("text-decoration", "line-through")
                 $(this).closest(".list-group-item").css("background-color", "lightgrey")
             } else if ($(this).hasClass("checked")){
-                var msg = JSON.stringify({Type:"active", Id:act_id})
+                status = "active"
                 $(this).removeClass("checked").addClass("unchecked")
                 $(this).siblings("label").css("text-decoration", "")
                 $(this).closest(".list-group-item").css("background-color", "")
             } else {
                 alert("unknown class")
             }
-            websocket = new WebSocket("ws://localhost:3000/ws_update")
-            websocket.onopen=function(){
-                websocket.send(msg)
-            }
-            websocket.onmessage = function(e){
-                console.log("message")
-                if (e.data == "data updated"){
-                    console.log(e.data)
-                } else if (e.data == "update in db failed") {
-                    console.log(e.data)
-                    alert("更新失敗")
-                } else {
-                    console.log("unknow problem")
-                    alert("錯誤")
+            $.ajax({
+                url: "/api",
+                method: "PATCH",
+                data: {
+                    "status":status,
+                    "id":act_id,
+                },
+                success: function(data){
+                    console.log(data)
+                },
+                error: function(data){
+                    console.log(data.responseText)
+                    alert("狀態更改失敗")
                 }
-            }
-            websocket.onclose=function(){
-                console.log("closed");
-            }
+            });
         })
+        
+        //edit
+        $('body').on('click', ".form-check-label", function(){
+            var act_id = $(this).siblings(".form-check-input").attr("id")
+            
+            var $el = $(this);            
+            var $input = $('<input/>').val( $el.text() );
+            $el.replaceWith( $input );
+            
+            var save = function(){
+                var status = "subject_change"
+                var subject = $input.val()
+                var $p = $('<label class="form-check-label" for="defaultCheck1"/>').text( $input.val() );
+                console.log(status, act_id, subject)
+                $.ajax({
+                    url: "/api",
+                    method: "PATCH",
+                    data: {
+                        "status":status,
+                        "id":act_id,
+                        "subject": subject
+                    },
+                    success: function(data){
+                        console.log(data)
+                        var $p = $('<label class="form-check-label" for="defaultCheck1"/>').text( $input.val() );
+                        $input.replaceWith( $p );
+                    },
+                    error: function(data){
+                        console.log(data.responseText)
+                        var $p = $('<label class="form-check-label" for="defaultCheck1"/>').text( $el.text() );
+                        $input.replaceWith( $p );
+                        alert("標題更改失敗")
+                    }
+                });
+            };
+            $input.on('blur', save);
+        });
 
         // 刪除
         $("body").on("click","#delete", function(){
-            websocket = new WebSocket("ws://localhost:3000/ws_delete")
-            websocket.onopen=function(){
-                console.log("connected");
-                var msg = "clear"
-                websocket.send(msg)
-            }
-            websocket.onmessage = function(e){
-                console.log("message")
-                if (e.data == "no object selected"){
-                    alert("請選擇欲刪除項目")
-                } else if (e.data == "data updated"){
-                    console.log(e.data)
-                    alert("刪除完成")
+            $.ajax({
+                url: "/api",
+                method: "DELETE",
+                data: {
+                    "status":"complete",
+                },
+                success: function(data){
                     window.location.reload();
-                } else {
-                    alert("錯誤")
-                    console.log(e.data)
+                    alert("刪除完成")
+                },
+                error: function(data){
+                    console.log(data.responseText)
+                    alert("刪除失敗")
                 }
-            }
-            websocket.onclose=function(){
-                console.log("closed");
-            }
-            
+            });
         })
+        
     </script>
 </html>
