@@ -79,9 +79,7 @@
                     "group":group,
                 },
                 success: function(data){
-                    console.log(data)
                     for (let i=0; i<data.length; i++) {
-                        console.log(i)
                         if (data[i].Status == "1") {
                             $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ data[i].ID +'"><label class="form-check-label" for="defaultCheck1">'+data[i].Subject+'</div></li>');
                         } else if (data[i].Status == "2") {
@@ -112,7 +110,6 @@
                 },
                 success: function(data){
                     for (let i=0; i<data.length; i++) {
-                        console.log(i)
                         if (data[i].Status == "1") {
                             $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ data[i].ID +'"><label class="form-check-label" for="defaultCheck1">'+data[i].Subject+'</div></li>');
                         } else if (data[i].Status == "2") {
@@ -131,7 +128,6 @@
         $("body").on("click","#next_page", function(){
             var group = $(".container").data("group")
             var page =  $(".container").data("page")
-            console.log(group, page)
             $.ajax({
                 url: "/api",
                 method: "GET",
@@ -140,11 +136,9 @@
                     "group":group,
                 },
                 success: function(data){
-                    console.log(data)
                     $(".container").data("page", page+1)
                     $(".form-check-input").closest(".list-group-item").remove()
                     for (let i=0; i<data.length; i++) {
-                            console.log(i)
                             if (data[i].Status == 1) {
                                 $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ data[i].ID +'"><label class="form-check-label" for="defaultCheck1">'+data[i].Subject+'</div></li>');
                             } else if (data[i].Status == 2) {
@@ -156,7 +150,6 @@
                     $(".container").data("page", page)
                     console.log(data.responseText)
                     alert("已無其他分頁")
-                    console.log(group, page)
                 }
             });
         });
@@ -165,7 +158,6 @@
         $("body").on("click","#previous_page", function(){
             var group = $(".container").data("group")
             var page =  $(".container").data("page")
-            console.log(group, page)
             if (page<=1){
                 alert("已無其他分頁")
                 return
@@ -178,11 +170,9 @@
                     "group":group,
                 },
                 success: function(data){
-                    console.log(data)
                     $(".container").data("page", page-1)
                     $(".form-check-input").closest(".list-group-item").remove()
                     for (let i=0; i<data.length; i++) {
-                            console.log(i)
                             if (data[i].Status == 1) {
                                 $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ data[i].ID +'"><label class="form-check-label" for="defaultCheck1">'+data[i].Subject+'</div></li>');
                             } else if (data[i].Status == 2) {
@@ -194,7 +184,6 @@
                     $(".container").data("page", page)
                     console.log(data.responseText)
                     alert("已無其他分頁")
-                    console.log(group, page)
                 }
             });
         });
@@ -213,6 +202,7 @@
                     subject:input.value
                 },
                 success: function(data){
+                    console.log(data)
                     window.location.reload();
                 }, 
                 error: function(data){
@@ -248,6 +238,31 @@
                 },
                 success: function(data){
                     console.log(data)
+                    //refresh
+                    $(".container").data("group", group)
+                    $(".container").data("page", page)
+                    $(".form-check-input").closest(".list-group-item").remove()
+                    $.ajax({
+                        url: "/api",
+                        method: "GET",
+                        dataType: "json",
+                        data: {
+                            "page":page,
+                            "group":group,
+                        },
+                        success: function(data){
+                            for (let i=0; i<data.length; i++) {
+                                if (data[i].Status == "1") {
+                                    $("#msg").append('<li class="list-group-item"><div class="form-check"><input class="form-check-input unchecked" type="checkbox" value="" id="'+ data[i].ID +'"><label class="form-check-label" for="defaultCheck1">'+data[i].Subject+'</div></li>');
+                                } else if (data[i].Status == "2") {
+                                    $("#msg").append('<li class="list-group-item" style="background-color: lightgrey"><div class="form-check"><input class="form-check-input checked" type="checkbox" value="" id="'+ data[i].ID +'" checked="checked"><label class="form-check-label" for="defaultCheck1" style="text-decoration: line-through">'+data[i].Subject+'</div></li>');
+                                }
+                            }
+                        },
+                        error: function(data){
+                            console.log(data.responseText)
+                        } 
+                    });
                 },
                 error: function(data){
                     console.log(data.responseText)
@@ -268,7 +283,6 @@
                 var status = "subject_change"
                 var subject = $input.val()
                 var $p = $('<label class="form-check-label" for="defaultCheck1"/>').text( $input.val() );
-                console.log(status, act_id, subject)
                 $.ajax({
                     url: "/api",
                     method: "PATCH",
