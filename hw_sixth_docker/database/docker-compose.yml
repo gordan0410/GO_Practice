@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: mysql5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=testdb
+    volumes:
+      - ./mysql_volumes:/var/lib/mysql
+    ports:
+      - 9010:3306
+    networks:
+      - test
+
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    depends_on:
+    - mysql
+    ports:
+    - 9011:80
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+    networks:
+      - test
+
+networks:
+  test:

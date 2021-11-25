@@ -1,0 +1,9 @@
+{
+    "Username" : "root",
+    "Password" : "root",
+    "Addr" : "mysql:3306",
+    "Database" : "testdb",
+    "Max_lifetime" : 10,
+    "Max_openconns" : 10,
+    "Max_idleconns" : 10
+}
