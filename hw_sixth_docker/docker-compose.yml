@@ -30,7 +30,5 @@ services:
         dockerfile: ./docker/Dockerfile
       depends_on:
         - mysql
-      volumes:
-        - ./:/go/src/go_gin
       ports:
         - 9012:3000

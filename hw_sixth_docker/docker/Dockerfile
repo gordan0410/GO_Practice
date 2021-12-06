@@ -10,4 +10,4 @@ WORKDIR /app/
 COPY --from=build-env go/src/go_gin/app /app
 COPY --from=build-env go/src/go_gin/config.json /app
 COPY --from=build-env go/src/go_gin/template /app/template
-ENTRYPOINT ./app
+ENTRYPOINT sleep 10 && ./app
