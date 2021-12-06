@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-conf
+data:
+  config.json: |
+    {
+    "Username" : "root",
+    "Password" : "root",
+    "Addr" : "mysql-service",
+    "Database" : "testdb",
+    "Max_lifetime" : 10,
+    "Max_openconns" : 10,
+    "Max_idleconns" : 10
+    }

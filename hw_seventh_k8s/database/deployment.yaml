@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-deployment
+  labels:
+    app: db
+    area: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+      area: backend
+  template:
+    metadata:
+      labels:
+        app: db
+        area: backend
+    spec:
+      containers:
+        # db
+        - name: my-db-container
+          image: mysql:5.7
+          ports:
+          - name: db-port
+            containerPort: 3306
+          # 環境
+          env:
+            # root密碼
+          - name: MYSQL_ROOT_PASSWORD
+            valueFrom:
+              # 從secret內拿資料
+              secretKeyRef:
+                name: mysql-secret
+                key: db-root-password
+            # 指定db
+          - name: MYSQL_DATABASE
+            value: testdb
+          # mount volume
+          volumeMounts:
+          - mountPath: /var/lib/mysql
+            name: mysql-volume
+          # 資源限制
+          resources:
+            requests:
+              cpu: 10m
+              memory: 100Mi
+            limits:
+              memory: 500Mi
+              cpu: 100m
+      volumes:
+      - name: mysql-volume
+        persistentVolumeClaim:
+          claimName: mysql-pvc
