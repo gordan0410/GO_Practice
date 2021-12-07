@@ -21,9 +21,6 @@ spec:
         # db
         - name: my-db-container
           image: mysql:5.7
-          ports:
-          - name: db-port
-            containerPort: 3306
           # 環境
           env:
             # root密碼

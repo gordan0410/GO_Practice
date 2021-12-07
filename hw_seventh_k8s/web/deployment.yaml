@@ -12,7 +12,7 @@ spec:
   # 幾個pod
   replicas: 1
   # 延遲，等待db啟用完成
-  minReadySeconds: 5
+  minReadySeconds: 12
   # 選擇適用labels（必須設定，方便以後新增labels需求）
   selector:
     matchLabels:
@@ -26,7 +26,7 @@ spec:
       containers:
       # 定義container
       - name: web-container
-        image: go_gin_test
+        image: todolist
         # 三種型態 Never: local無則err, Always: 每次啟動則更新, IfNotPresent: local無則pull 
         imagePullPolicy: Never
         ports:
@@ -45,7 +45,7 @@ spec:
         # 存活探針
         livenessProbe:
           httpGet:
-            path: /api
+            path: /db_alive
             port: web-port
           initialDelaySeconds: 30
           periodSeconds: 10

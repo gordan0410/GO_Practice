@@ -7,6 +7,7 @@ metadata:
     area: backend
 spec:
   replicas: 1
+  minReadySeconds: 10
   selector:
     matchLabels:
       app: phpmyadmin
@@ -20,9 +21,6 @@ spec:
       containers:
       - name: phpmyadmin
         image: phpmyadmin/phpmyadmin
-        ports:
-        - name: php-port
-          containerPort: 80
         env:
         - name: PMA_HOST
           value: mysql-service
