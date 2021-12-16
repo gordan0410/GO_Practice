@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <link rel="shortcut icon" href="#">
+    <title></title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous">
+    </script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous">
+    </script>
+    <script src="https://unpkg.com/vue@next"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+
+<body class="body">
+    <div class="container">
+        <br>
+        <div class="row">
+            <div class="col-4"></div>
+            <div id="test2" class="col-4 d-flex justify-content-center">
+                <div id="test">
+                    <h5>{{ title }}</h5>
+                    <p>{{ msg }}</p>
+                    <div v-if="form">
+                        <label>帳號:</label>
+                        <input v-model.trim="username"><br>
+                        <span class="text_error">{{ u_msg }}</span>
+                        <span v-html="u_br"></span>
+                        <label>密碼:</label>
+                        <input type="password" v-model.trim="password">
+                        <br>
+                        <span class="text_error">{{ p_msg }}</span>
+                        <span v-html="p_br"></span>
+                        <button @click="register_send" v-if="register" type="button"
+                            class="btn btn-success float-right">註冊</button>
+                        <button @click="login_send" v-if="login" type="button"
+                            class="btn btn-success float-right">登入</button>
+                        <button @click="login_register" v-if="login" type="button"
+                            class="btn btn-danger float-left">註冊</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4"></div>
+        </div>
+    </div>
+</body>
+<style>
+    .input_error {
+        border: red solid 1px;
+        color: red;
+    }
+
+    .text_error {
+        color: red;
+        vertical-align: super;
+        font-size: smaller;
+    }
+</style>
+<script>
+    const vm_login = Vue.createApp({
+        data() {
+            return {
+                title: '',
+                msg: "",
+                username: "",
+                password: "",
+                u_msg: "",
+                p_msg: "",
+                u_br: "",
+                p_br: "",
+                form: false,
+                register: false,
+                login: false,
+            }
+        },
+        beforeCreate: function () {
+            axios
+                .get("/api")
+                .then(response => {
+                    if (response.data.error) {
+                        console.log(response.data.error)
+                        this.title = '登入';
+                        this.form = true;
+                        this.login = true;
+                    } else if (response.data.success) {
+                        console.log(response.data.success)
+                        window.location.href = '/'
+                    }
+                })
+                .catch(error => {
+                    console.log(error)
+                });
+        },
+        methods: {
+            register_send() {
+                this.u_msg = ""
+                this.u_br = ""
+                this.p_msg = ""
+                this.p_br = ""
+                let username_length = this.username.length
+                let password_length = this.password.length
+                let u_isVaild = username_length <= 10 && username_length >= 4
+                let p_isVaild = password_length <= 10 && password_length >= 4
+                if (u_isVaild && p_isVaild) {
+                    const postData = {
+                        "username": this.username,
+                        "password": this.password
+                    };
+                    axios
+                        .post("/register", postData)
+                        .then(response => {
+                            if (response.data.error) {
+                                console.log(response.data.error)
+                                alert("註冊失敗")
+                            } else if (response.data.success) {
+                                console.log(response.data.success)
+                                this.register = false;
+                                this.login = true;
+                                this.title = "登入";
+                                this.username = "";
+                                this.password = "";
+                            }
+                        })
+                        .catch(error => {
+                            console.log(error)
+                        });
+                } else if (!u_isVaild) {
+                    this.u_msg = "字數必須介於4~10個字之間";
+                    this.u_br = "<br>";
+                } else if (!p_isVaild) {
+                    this.p_msg = "字數必須介於4~10個字之間";
+                    this.p_br = "<br>";
+                };
+            },
+            login_send() {
+                let self = this
+                this.u_msg = ""
+                this.u_br = ""
+                this.p_msg = ""
+                this.p_br = ""
+                let username_length = this.username.length
+                let password_length = this.password.length
+                let u_isVaild = username_length <= 10 && username_length >= 4
+                let p_isVaild = password_length <= 10 && password_length >= 4
+                if (u_isVaild && p_isVaild) {
+                    const postData = {
+                        "username": this.username,
+                        "password": this.password
+                    };
+                    axios
+                        .post("/login", postData)
+                        .then(response => {
+                            if (response.data.error) {
+                                console.log(response.data.error)
+                                alert("帳號或密碼錯誤，請重新輸入")
+                                this.username = "";
+                                this.password = "";
+                            } else if (response.data.success) {
+                                console.log(response.data.success)
+                                window.location.href = '/'
+                            }
+                        })
+                        .catch(error => {
+                            console.log(error)
+                        });
+                } else if (!u_isVaild) {
+                    this.u_msg = "字數必須介於4~10個字之間";
+                    this.u_br = "<br>";
+                } else if (!p_isVaild) {
+                    this.p_msg = "字數必須介於4~10個字之間";
+                    this.p_br = "<br>";
+                };
+            },
+            login_register() {
+                this.register = true;
+                this.login = false;
+                this.title = "註冊";
+                this.username = "";
+                this.password = "";
+            },
+        },
+    });
+    vm_login.mount('#test')
+</script>
+
+</html>

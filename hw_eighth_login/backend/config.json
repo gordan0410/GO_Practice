@@ -1,0 +1,9 @@
+{
+    "Username" : "root",
+    "Password" : "root",
+    "Addr" : "localhost:3306",
+    "Database" : "test",
+    "Max_lifetime" : 10,
+    "Max_openconns" : 10,
+    "Max_idleconns" : 10
+}
