@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"github.com/rs/zerolog/log"
 	"fmt"
+	"gorm.io/gorm/logger"
 )
 
 // 資料庫連接資料
@@ -46,7 +47,7 @@ func Load_database(addr string)(db_conn *gorm.DB, db_conn_err error) {
 
 	// gorm資料庫連接
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/?charset=utf8&parseTime=True&loc=Local", msg.Username, msg.Password, msg.Addr)
-	db_conn, db_conn_err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db_conn, db_conn_err = gorm.Open(mysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if db_conn_err != nil {
 		log.Warn().Caller().Err(err).Str("func", "gorm.Open").Msg("DB")
 		return
@@ -57,7 +58,7 @@ func Load_database(addr string)(db_conn *gorm.DB, db_conn_err error) {
 
 	// 重新連接指定schema
 	dsn = fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", msg.Username, msg.Password, msg.Addr, msg.Database)
-	db_conn, db_conn_err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db_conn, db_conn_err = gorm.Open(mysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if db_conn_err != nil {
 		log.Warn().Caller().Err(err).Str("func", "gorm.Open").Msg("DB")
 		return
@@ -78,9 +79,9 @@ func Load_database(addr string)(db_conn *gorm.DB, db_conn_err error) {
 	db.SetMaxOpenConns(msg.Max_openconns)
 
 	// 更新資料庫資料
-	err = db_conn.Debug().AutoMigrate(&Account{})
+	err = db_conn.AutoMigrate(&Account{})
 	if err != nil {
-		log.Warn().Caller().Err(err).Str("func", "db_conn.Debug().AutoMigrate").Msg("DB")
+		log.Warn().Caller().Err(err).Str("func", "db_conn.AutoMigrate").Msg("DB")
 		return
 	}
 
