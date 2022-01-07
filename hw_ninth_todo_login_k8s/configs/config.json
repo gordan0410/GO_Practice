@@ -1,0 +1,27 @@
+{
+    "jwt": {
+        "Jwt_key": "1234",
+        "Jwt_maxage": 30
+    },
+    "mysql": {
+        "Username": "root",
+        "Password": "root",
+        "Addr": "localhost:9010",
+        "Database": "test",
+        "Max_lifetime": 10,
+        "Max_openconns": 10,
+        "Max_idleconns": 10
+    },
+    "redis": {
+        "Size": 10,
+        "Network": "tcp",
+        "Address": "localhost:9012",
+        "Password": ""
+    },
+    "session": {
+        "Session_name": "my-session",
+        "Session_prefix": "session_",
+        "Session_key": "1234",
+        "Session_maxage": 30
+    }
+}

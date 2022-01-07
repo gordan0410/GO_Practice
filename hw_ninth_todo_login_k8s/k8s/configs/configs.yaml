@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configs
+data:
+  config.json: |
+    {
+      "jwt": {
+        "Jwt_key" : "1234",
+        "Jwt_maxage" : 999
+      },
+      "mysql": {
+        "Username" : "root",
+        "Password" : "root",
+        "Addr" : "mysql-service:3306",
+        "Database" : "test",
+        "Max_lifetime" : 10,
+        "Max_openconns" : 10,
+        "Max_idleconns" : 10
+      },
+      "redis": {
+        "Size" : 10,
+        "Network" : "tcp",
+        "Address" : "redis-service:6379",
+        "Password" : ""
+      },
+      "session": {
+        "Session_name" : "my-session",
+        "Session_prefix" : "session_",
+        "Session_key" : "1234",
+        "Session_maxage" : 999
+      }
+    }

@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis
+    ports:
+      - 9012:6379
+
+  mysql:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=test
+    volumes:
+      - mysql_volumes:/var/lib/mysql
+    ports:
+      - 9010:3306
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    depends_on:
+      - mysql
+    ports:
+      - 9011:80
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+  # hw_ninth_web:
+  #   image: hw_ninth_web
+  #   build:
+  #     context: .
+  #     dockerfile: ./docker/Dockerfile
+  #   depends_on:
+  #     - mysql
+  #   ports:
+  #     - 9013:30004
+  #   restart: unless-stopped
+
+volumes:
+  mysql_volumes:
+
+    null

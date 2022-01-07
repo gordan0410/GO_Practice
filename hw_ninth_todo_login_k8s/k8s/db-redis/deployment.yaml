@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-redis-deployment
+  labels:
+    app: db-redis
+    area: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-redis
+      area: backend
+  template:
+    metadata:
+      labels:
+        app: db-redis
+        area: backend
+    spec:
+      containers:
+        # db
+        - name: my-redis-container
+          image: redis
+          # command: ["redis-server"]
+          # args: ["--bind 0.0.0.0"]
+          # mount volume
+          volumeMounts:
+          - mountPath: /data
+            name: redis-volume
+          # 資源限制
+          resources:
+      volumes:
+      - name: redis-volume
+        persistentVolumeClaim:
+          claimName: redis-pvc

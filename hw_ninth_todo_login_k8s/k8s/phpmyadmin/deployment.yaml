@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-deployment
+  labels:
+    app: db
+    area: backend
+spec:
+  replicas: 1
+  minReadySeconds: 10
+  selector:
+    matchLabels:
+      app: phpmyadmin
+      area: backend
+  template:
+    metadata:
+      labels:
+        app: phpmyadmin
+        area: backend
+    spec:
+      containers:
+      - name: phpmyadmin
+        image: phpmyadmin/phpmyadmin
+        env:
+        - name: PMA_HOST
+          value: mysql-service
+        - name: PMA_PORT
+          value: "3306"
+        resources:
+        # 就續探針
+        readinessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 10
+        # 存活探針
+        livenessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
