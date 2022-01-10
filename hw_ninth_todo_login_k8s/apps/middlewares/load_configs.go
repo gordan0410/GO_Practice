@@ -9,5 +9,6 @@ import (
 func Load_configs(config *tools.Config_data) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set("configs", config)
+		c.Next()
 	}
 }

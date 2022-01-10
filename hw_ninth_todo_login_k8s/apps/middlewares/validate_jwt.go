@@ -43,16 +43,19 @@ func Validate_jwt(c *gin.Context) {
 			} else {
 				log_message = "can not handle this token"
 			}
+			// jwt驗證錯誤
 			if log_message != "" {
 				log.Error().Caller().Str("func", "tools.AuthRequired").Str("msg", log_message).Msg("Web")
 				if err := tools.Msg_send(c, "error", "token error", nil); err != nil {
 					log.Error().Caller().Str("func", "tools.Msg_send").Err(err).Msg("Web")
 				}
+				// 過期錯誤
 			} else {
 				if err := tools.Msg_send(c, "error", message, nil); err != nil {
 					log.Error().Caller().Str("func", "tools.Msg_send").Err(err).Msg("Web")
 				}
 			}
+			// 其他錯誤
 		} else {
 			log.Error().Caller().Str("func", "tools.AuthRequired").Err(err).Msg("Web")
 			if err := tools.Msg_send(c, "error", "token error", nil); err != nil {

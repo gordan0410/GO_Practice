@@ -25,21 +25,22 @@ func Set_router() {
 			h.ServeHTTP(c.Writer, c.Request)
 		}
 	})
+
+	// for k8s livenessprobe
 	r.GET("/alive", alive)
 
 	// 登入
 	r.POST("/login", login_api)
 	r.POST("/register", register_api)
 	r.GET("/logout", logout_api)
+	r.GET("/auth", auth_api)
 
 	// todolist
-	r.GET("/auth", auth_api)
 	r.GET("/todolist", todolist_api)
 	r.POST("/todolist", todolist_api)
 	r.PATCH("/todolist", todolist_api)
 	r.DELETE("/todolist", todolist_api)
 
-	// err := r.Run(":30004")
 	err := endless.ListenAndServe(":30004", r)
 	if err != nil {
 		log.Error().Caller().Str("func", "endless.ListenAndServe(\":30004\", r)").Err(err).Msg("Web")

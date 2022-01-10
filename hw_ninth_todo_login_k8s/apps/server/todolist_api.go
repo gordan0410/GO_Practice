@@ -10,9 +10,9 @@ import (
 func todolist_api(c *gin.Context) {
 	// get method
 	method := c.Request.Method
-	// get
+	// get param
 	param := c.Request.URL.RawQuery
-	// set payload
+	// get payload
 	payload := c.Request.Body
 
 	// get token
@@ -25,8 +25,8 @@ func todolist_api(c *gin.Context) {
 		return
 	}
 
+	// 先驗證
 	req_data := map[string]string{"token": token}
-	// request
 	r_msg, err := tools.Request_api("http://localhost:30002/auth/", "POST", nil, req_data)
 	if err != nil {
 		log.Error().Caller().Str("func", "request_api(...)").Err(err).Msg("Web")
@@ -37,6 +37,7 @@ func todolist_api(c *gin.Context) {
 		return
 	}
 
+	// get return account data
 	user_id_raw := r_msg.Data["user_id"]
 	user_id, b := user_id_raw.(string)
 	if !b {
@@ -47,6 +48,7 @@ func todolist_api(c *gin.Context) {
 		}
 	}
 
+	// 驗證完成取資料
 	if method == "GET" {
 		param = param + "&user_id=" + user_id
 		r_msg, err = tools.Request_api("http://localhost:30003/api?"+param, method, nil, nil)
@@ -62,6 +64,7 @@ func todolist_api(c *gin.Context) {
 		}
 		return
 	}
+
 	status := r_msg.Status
 	msg := r_msg.Msg
 	data := r_msg.Data
