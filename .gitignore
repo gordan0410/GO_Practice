@@ -7,4 +7,5 @@ example.go
 /bin
 /playground
 /docker
-/hw_sixth_docker/mysql_volumes
+
+**/mysql_volumes
