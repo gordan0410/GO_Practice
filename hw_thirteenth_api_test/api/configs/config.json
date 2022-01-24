@@ -1,0 +1,43 @@
+{
+    "scheme": "http",
+    "host": "localhost",
+    "api": {
+        "port": "3000",
+        "key": "key",
+        "value": "123",
+        "path1": {
+            "path": "/api/1",
+            "id": "id"
+        },
+        "path2": {
+            "path": "/api/2",
+            "id": "id"
+        }
+    },
+    "v1": {
+        "port": "3001",
+        "key": "api-key",
+        "value": "321",
+        "path1": {
+            "path": "/v1/person",
+            "id": "no"
+        },
+        "path2": {
+            "path": "/v1/book",
+            "id": "number"
+        }
+    },
+    "v2": {
+        "port": "3002",
+        "key": "token",
+        "value": "gordan",
+        "path1": {
+            "path": "/v2/teacher",
+            "id": "t"
+        },
+        "path2": {
+            "path": "/v2/student",
+            "id": "s"
+        }
+    }
+}

@@ -18,6 +18,7 @@ type Login struct {
 func Set_router(configs *tools.Config_data) {
 	r := gin.New()
 	r.Use(gin.Recovery())
+	// load configs and set it in router.
 	r.Use(middlewares.Load_configs(configs))
 
 	// for k8s livenessprobe

@@ -10,6 +10,7 @@ import (
 )
 
 func Set_router(configs *tools.Config_data) {
+	gin.Default()
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middlewares.Load_configs(configs))

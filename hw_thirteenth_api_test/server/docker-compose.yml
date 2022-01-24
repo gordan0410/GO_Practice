@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  servera:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfilea
+    image: servera
+    ports:
+      - 30015:3000
+
+  serverb:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfileb
+    image: serverb
+    ports:
+      - 30016:3001
+
+  serverc:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfilec
+    image: serverc
+    ports:
+      - 30017:3002
