@@ -14,12 +14,10 @@ type Config struct {
 		Key   string `json:"key"`
 		Value string `json:"value"`
 		Path1 struct {
-			Path string `json:"path"`
-			ID   string `json:"id"`
+			ID string `json:"id"`
 		} `json:"path1"`
 		Path2 struct {
-			Path string `json:"path"`
-			ID   string `json:"id"`
+			ID string `json:"id"`
 		} `json:"path2"`
 	} `json:"api"`
 	V1 struct {
@@ -27,12 +25,10 @@ type Config struct {
 		Key   string `json:"key"`
 		Value string `json:"value"`
 		Path1 struct {
-			Path string `json:"path"`
-			ID   string `json:"id"`
+			ID string `json:"id"`
 		} `json:"path1"`
 		Path2 struct {
-			Path string `json:"path"`
-			ID   string `json:"id"`
+			ID string `json:"id"`
 		} `json:"path2"`
 	} `json:"v1"`
 	V2 struct {
@@ -40,12 +36,10 @@ type Config struct {
 		Key   string `json:"key"`
 		Value string `json:"value"`
 		Path1 struct {
-			Path string `json:"path"`
-			ID   string `json:"id"`
+			ID string `json:"id"`
 		} `json:"path1"`
 		Path2 struct {
-			Path string `json:"path"`
-			ID   string `json:"id"`
+			ID string `json:"id"`
 		} `json:"path2"`
 	} `json:"v2"`
 }

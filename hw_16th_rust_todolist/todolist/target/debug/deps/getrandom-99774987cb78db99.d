@@ -1,0 +1,11 @@
+/Users/gordan_kuo/Desktop/workspace/hw_16th_rust_todolist/todolist/target/debug/deps/getrandom-99774987cb78db99.rmeta: /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/lib.rs /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/error.rs /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/util.rs /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/error_impls.rs /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/util_libc.rs /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/use_file.rs /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/macos.rs
+
+/Users/gordan_kuo/Desktop/workspace/hw_16th_rust_todolist/todolist/target/debug/deps/getrandom-99774987cb78db99.d: /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/lib.rs /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/error.rs /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/util.rs /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/error_impls.rs /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/util_libc.rs /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/use_file.rs /Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/macos.rs
+
+/Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/lib.rs:
+/Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/error.rs:
+/Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/util.rs:
+/Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/error_impls.rs:
+/Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/util_libc.rs:
+/Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/use_file.rs:
+/Users/gordan_kuo/.cargo/registry/src/github.com-1ecc6299db9ec823/getrandom-0.1.16/src/macos.rs:

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <link rel="shortcut icon" href="#">
+    <title></title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous">
+    </script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous">
+    </script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous">
+    </script>
+    <script src="https://unpkg.com/vue@next"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+
+<body class="body">
+    <div class="container" id="todolist">
+        <div v-if="todolist">
+            <br>
+            <div class="row group_btn">
+                <div class="col-4"></div>
+                <div class="col-4 d-flex justify-content-center">
+                    <div id="input_region">
+                        <h5>新事項:</h5>
+                        <input id="input" v-model.trim="new_subject">
+                        <button @click="create" id="send" type="button" class="btn btn-primary"
+                            style="margin-left:1vw;">傳送</button>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <button @click="login_out" type="button" class="btn btn-danger float-right"
+                        style="margin-left:1vw;">登出</button>
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-4">
+                </div>
+                <div class="col-4 d-flex justify-content-center">
+                    <button @click="switch_page($event)" id="all" type="button"
+                        class="btn btn-dark group_btn">所有</button>
+                    <button @click="switch_page($event)" id="active" type="button"
+                        class="btn btn-dark group_btn">待辦</button>
+                    <button @click="switch_page($event)" id="complete" type="button"
+                        class="btn btn-dark group_btn">完成</button>
+                </div>
+                <div class="col-4">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-4">
+                </div>
+                <div class="col-4 d-flex justify-content-between">
+                    <div class="float-left">
+                        <label class="title_label">當前頁數: </label>
+                        <span>{{ page }}</span>
+                    </div>
+                    <div>
+                        <label class="title_label">項目: </label>
+                        <span>{{ title }}</span>
+                    </div>
+                    <div class="float-right">
+                        <label class="title_label">批次顯示資料數: </label>
+                        <span>{{ slice_target }}</span>
+                    </div>
+                </div>
+                <div class="col-4">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-4"></div>
+                <div class="col-4">
+                    <div class="card d-flex justify-content-center">
+                        <ul id="msg" class="list-group list-group_flush">
+                            <li class="list-group-item" v-for="(item, key, index) in msg">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" v-if="item.status===1"
+                                        v-bind:id="item.id" v-bind:value="item.subject" @click="status_change($event)">
+                                    <input class="form-check-input" type="checkbox" v-if="item.status===2"
+                                        v-bind:id="item.id" v-bind:checked="true" v-bind:value="item.subject"
+                                        @click="status_change($event)">
+                                    <label class="form-check-label" for="defaultCheck1">{{ item.subject }}</label>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-4"></div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-4">
+                </div>
+                <div class="col-4 d-flex justify-content-center">
+                    <button @click="last_page" id="previous_page" type="button"
+                        class="btn btn-success group_btn">上一頁</button>
+                    <button @click="next_page" id="next_page" type="button"
+                        class="btn btn-success group_btn">下一頁</button>
+                    <button @click="delete_item" id="delete" type="button"
+                        class="btn btn-danger group_btn">刪除完成事項</button>
+                </div>
+                <div class="col-4">
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<style>
+    .group_btn {
+        margin-left: 1vw;
+        margin-right: 1vw;
+        margin-bottom: 1vh;
+    }
+
+    .title_label {
+        font-weight: bold;
+    }
+</style>
+<script>
+    var api = "/v1/api/todolist"
+
+    const vm_api = Vue.createApp({
+        data() {
+            return {
+                title: "所有項目",
+                page: "",
+                slice_target: "",
+                group: "",
+                msg: "",
+                new_subject: "",
+                edit_filed: "",
+                todolist: false,
+            }
+        },
+        beforeCreate: function () {
+            const get_data = {
+                params: {
+                    "page": 1,
+                    "slice_target": 4,
+                    "group": "all",
+                    "user_id": 1
+                }
+            }
+            axios
+                .create({
+                    withCredentials: true
+                })
+                .get(api, get_data)
+                .then(response => {
+                    if (response.data.status === "success") {
+                        this.msg = response.data.data
+                        this.page = 1
+                        this.slice_target = 4
+                        this.todolist = true
+                    } else {
+                        console.log(response.data)
+                        alert("無法取得伺服器資料，請聯絡管理員")
+                    }
+                })
+                .catch(error => {
+                    alert("無法取得伺服器資料，請聯絡管理員")
+                });
+        },
+        methods: {
+            login_out() {
+                axios
+                    .create({
+                        withCredentials: true
+                    })
+                    .get(logout)
+                    .then(response => {
+                        document.cookie = "Authorization=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                        if (response.data.msg === "token error") {
+                            alert("登入資料錯誤，請重新登入")
+                            window.location.href = '/login.html'
+                        } else if (response.data.msg === "token expired") {
+                            alert("登入資料已過期，請重新登入")
+                            window.location.href = '/login.html'
+                        } else if (response.data.status === "error") {
+                            alert("登出失敗，請重新登入")
+                            window.location.href = '/login.html'
+                        } else if (response.data.status === "success") {
+                            alert("登出成功")
+                            window.location.href = '/login.html'
+                        }
+                    })
+                    .catch(error => {
+                        document.cookie = "Authorization=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                        alert("無法取得伺服器資料，請聯絡管理員")
+                    });
+            },
+            // 分類
+            switch_page(event) {
+                this.msg = ""
+                this.page = 1
+                this.group = event.currentTarget.id;
+                if (this.group === "all") {
+                    this.title = "所有項目"
+                } else if (this.group === "active") {
+                    this.title = "待辦項目"
+                } else if (this.group === "complete") {
+                    this.title = "完成項目"
+                }
+                this.slice_target = 4
+                const get_data = {
+                    params: {
+                        "page": this.page,
+                        "slice_target": this.slice_target,
+                        "group": this.group
+                    }
+                };
+                axios
+                    .create({
+                        withCredentials: true
+                    })
+                    .get(api, get_data)
+                    .then(response => {
+                        if (response.data.status === "success") {
+                            this.msg = response.data.data
+                            this.page = 1
+                        } else if (response.data.msg === "token error") {
+                            alert("登入資料錯誤，請重新登入")
+                            window.location.href = '/login.html'
+                        } else if (response.data.msg === "token expired") {
+                            alert("登入資料已過期，請重新登入")
+                            window.location.href = '/login.html'
+                        } else {
+                            alert("無法取得伺服器資料，請聯絡管理員")
+                        }
+                    })
+                    .catch(error => {
+                        alert("無法取得伺服器資料，請聯絡管理員")
+                    });
+            },
+            // 下一頁
+            next_page() {
+                this.page += 1
+                const get_data = {
+                    params: {
+                        "page": this.page,
+                        "slice_target": 4,
+                        "group": this.group
+                    }
+                };
+                axios
+                    .create({
+                        withCredentials: true
+                    })
+                    .get(api, get_data)
+                    .then(response => {
+                        if (response.data.status === "success") {
+                            this.msg = ""
+                            this.msg = response.data.data
+                        } else if (response.data.msg === "no other page") {
+                            this.page -= 1
+                            alert("沒有其他頁面")
+                        } else if (response.data.msg === "token error") {
+                            alert("登入資料錯誤，請重新登入")
+                            window.location.href = '/login.html'
+                        } else if (response.data.msg === "token expired") {
+                            alert("登入資料已過期，請重新登入")
+                            window.location.href = '/login.html'
+                        } else {
+                            alert("無法取得伺服器資料，請聯絡管理員")
+                        }
+                    })
+                    .catch(error => {
+                        alert("無法取得伺服器資料，請聯絡管理員")
+                    });
+            },
+            // 上一頁
+            last_page() {
+                this.page -= 1
+                const get_data = {
+                    params: {
+                        "page": this.page,
+                        "slice_target": 4,
+                        "group": this.group
+                    }
+                };
+                axios
+                    .create({
+                        withCredentials: true
+                    })
+                    .get(api, get_data)
+                    .then(response => {
+                        if (response.data.status === "success") {
+                            this.msg = ""
+                            this.msg = response.data.data
+                        } else if (response.data.msg == "no other page") {
+                            this.page = 1
+                            alert("沒有其他頁面")
+                        } else if (response.data.msg === "token error") {
+                            alert("登入資料錯誤，請重新登入")
+                            window.location.href = '/login.html'
+                        } else if (response.data.msg === "token expired") {
+                            alert("登入資料已過期，請重新登入")
+                            window.location.href = '/login.html'
+                        } else {
+                            alert("無法取得伺服器資料，請聯絡管理員")
+                        }
+                    })
+                    .catch(error => {
+                        alert("無法取得伺服器資料，請聯絡管理員")
+                    });
+            },
+            // 新增
+            create() {
+                if (this.new_subject === "") {
+                    alert("請輸入事項，避免空白")
+                } else {
+                    const post_data = {
+                        "subject": this.new_subject
+                    };
+                    axios
+                        .create({
+                            withCredentials: true
+                        })
+                        .post(api, post_data)
+                        .then(response => {
+                            if (response.data.status === "success") {
+                                window.location.href = '/'
+                            } else if (response.data.msg === "token error") {
+                                alert("登入資料錯誤，請重新登入")
+                                window.location.href = '/login.html'
+                            } else if (response.data.msg === "token expired") {
+                                alert("登入資料已過期，請重新登入")
+                                window.location.href = '/login.html'
+                            } else {
+                                alert("新增事項失敗，請聯絡管理員")
+                            }
+                        })
+                        .catch(error => {
+                            alert("新增事項失敗，請聯絡管理員")
+                        });
+                }
+            },
+            // 刪除
+            delete_item() {
+                axios
+                    .create({
+                        withCredentials: true
+                    })
+                    .delete(api)
+                    .then(response => {
+                        if (response.data.status === "success") {
+                            alert("刪除成功")
+                            window.location.href = '/'
+                        } else if (response.data.msg === "no object selected") {
+                            alert("請選擇欲刪除的項目")
+                        } else if (response.data.msg === "token error") {
+                            alert("登入資料錯誤，請重新登入")
+                            window.location.href = '/login.html'
+                        } else if (response.data.msg === "token expired") {
+                            alert("登入資料已過期，請重新登入")
+                            window.location.href = '/login.html'
+                        } else {
+                            alert("刪除事項失敗，請聯絡管理員")
+                        }
+                    })
+                    .catch(error => {
+                        alert("刪除事項失敗，請聯絡管理員")
+                    });
+            },
+            // 更新
+            status_change(event) {
+                let status;
+                if (event.target.checked) {
+                    status = "complete";
+                } else if (!event.target.checked) {
+                    status = "active";
+                }
+                let subject = event.currentTarget.value;
+                let id = event.currentTarget.id;
+                const patch_data = {
+                    "status": status,
+                    "id": id,
+                    "subject": subject,
+                }
+                axios
+                    .create({
+                        withCredentials: true
+                    })
+                    .patch(api, patch_data)
+                    .then(response => {
+                        if (response.data.status === "success") {
+                            this.msg = ""
+                            const get_data = {
+                                params: {
+                                    "page": this.page,
+                                    "slice_target": this.slice_target,
+                                    "group": this.group
+                                }
+                            };
+                            axios
+                                .create({
+                                    withCredentials: true
+                                })
+                                .get(api, get_data)
+                                .then(response => {
+                                    if (response.data.status === "success") {
+                                        this.msg = response.data.data
+                                    } else if (response.data.msg === "token error") {
+                                        alert("登入資料錯誤，請重新登入")
+                                        window.location.href = '/login.html'
+                                    } else if (response.data.msg === "token expired") {
+                                        alert("登入資料已過期，請重新登入")
+                                        window.location.href = '/login.html'
+                                    } else {
+                                        alert("無法取得伺服器資料，請聯絡管理員")
+                                    }
+                                })
+                                .catch(error => {
+                                    alert("無法取得伺服器資料，請聯絡管理員")
+                                });
+
+                        } else if (response.data.msg === "token error") {
+                            alert("登入資料錯誤，請重新登入")
+                            window.location.href = '/login.html'
+                        } else if (response.data.msg === "token expired") {
+                            alert("登入資料已過期，請重新登入")
+                            window.location.href = '/login.html'
+                        } else {
+                            alert("狀態更改失敗，請聯絡管理員")
+                        }
+                    })
+                    .catch(error => {
+                        alert("狀態更改失敗，請聯絡管理員")
+                    });
+            },
+        },
+    });
+    vm_api.mount("#todolist");
+
+    //edit
+    $('body').on('click', ".form-check-label", function () {
+        var act_id = $(this).siblings(".form-check-input").attr("id")
+        var $el = $(this);
+        var $input = $('<input/>').val($el.text());
+        $el.replaceWith($input);
+
+        var save = function () {
+            var subject = $input.val();
+            if (subject === "") {
+                var $label = $(
+                        '<label class="form-check-label" for="defaultCheck1"/>')
+                    .text($el
+                        .text());
+                $input.replaceWith($label);
+            } else {
+                var status = "subject_change";
+                var $label = $('<label class="form-check-label" for="defaultCheck1"/>').text($input.val());
+                const data = {
+                    "status": status,
+                    "id": act_id,
+                    "subject": subject
+                }
+                $.ajax({
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    url: api,
+                    method: "PATCH",
+                    data: JSON.stringify(data),
+                    success: function (data) {
+                        if (data.status === "success") {
+                            var $label = $(
+                                    '<label class="form-check-label" for="defaultCheck1"/>')
+                                .text(
+                                    $input.val());
+                            $input.replaceWith($label);
+
+                        } else if (data.msg === "token error") {
+                            alert("登入資料錯誤，請重新登入")
+                            window.location.href = '/login.html'
+                        } else if (data.msg === "token expired") {
+                            alert("登入資料已過期，請重新登入")
+                            window.location.href = '/login.html'
+                        } else if (data.status === "error") {
+                            var $label = $(
+                                    '<label class="form-check-label" for="defaultCheck1"/>')
+                                .text($el
+                                    .text());
+                            $input.replaceWith($label);
+                            alert("事項更改失敗，請洽管理員")
+                        }
+                    },
+                    error: function (data) {
+                        var $label = $('<label class="form-check-label" for="defaultCheck1"/>')
+                            .text($el
+                                .text());
+                        $input.replaceWith($label);
+                        alert("事項更改失敗，請洽管理員")
+                    }
+                });
+            }
+        };
+        $input.on('blur', save);
+    })
+</script>
+
+</html>

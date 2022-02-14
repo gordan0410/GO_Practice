@@ -6,11 +6,9 @@
         "key": "key",
         "value": "123",
         "path1": {
-            "path": "/api/1",
             "id": "id"
         },
         "path2": {
-            "path": "/api/2",
             "id": "id"
         }
     },
@@ -19,11 +17,9 @@
         "key": "api-key",
         "value": "321",
         "path1": {
-            "path": "/v1/person",
             "id": "no"
         },
         "path2": {
-            "path": "/v1/book",
             "id": "number"
         }
     },
@@ -32,11 +28,9 @@
         "key": "token",
         "value": "gordan",
         "path1": {
-            "path": "/v2/teacher",
             "id": "t"
         },
         "path2": {
-            "path": "/v2/student",
             "id": "s"
         }
     }

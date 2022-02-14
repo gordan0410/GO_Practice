@@ -28,12 +28,10 @@ to quickly create a Cobra application.`,
 			con_addr = "./configs/config.json"
 		}
 		apis.Load_config(con_addr)
-		if len(args) > 1 {
-			if args[0] == "get" {
-				apis.Api_get(args[1])
-			} else if args[0] == "post" {
-				apis.Api_post(args[1])
-			}
+		if len(args) > 0 {
+			apis.Me(args[0])
+		} else {
+			apis.Me("1")
 		}
 	},
 }
